@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.1",
+	"id": "ndb-obsidian",
+	"name": "Deutsche Biographie Lookup",
+	"version": "1.0",
 	"minAppVersion": "0.12.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"isDesktopOnly": false
+	"description": "Search and insert biographical data from deutsche-biographie.de",
+	"author": "Jan Schlatter",
+	"authorUrl": "https://www.janschlatter.de",
+	"isDesktopOnly": true
 }
