@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<h1>Test</h1>
+<p>This is a test page.</p>
+<button onclick="getData()">Get Data</button>
+</body>
+<script>
+
+
+
+async function getData() {
+    const response = await fetch('http://data.deutsche-biographie.de/rest/sfz99.xml')
+    return response.json();
+}
+
+const button = document.getElementById("click");
+button.onclick = async function () {
+    const data = await getData();
+    console.log(data);
+}
+
+
+
+</script>
+</html>
+
