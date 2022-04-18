@@ -1,16 +1,21 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
 	searchString: string;
 	settingsBool: boolean;
+	filelocation: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const savedSettings: MyPluginSettings = {
 	searchString: 'Maier, Michael',
-	settingsBool: true
+	settingsBool: true,
+	filelocation: '/Personen/'
 }
+
+
+const vaultaccess = app.vault;
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -35,25 +40,36 @@ export default class MyPlugin extends Plugin {
 			id: 'ndb-lookup',
 			name: 'Lookup a historical figure on NDB',
 			callback: () => {
-				new LookUpModal(this.app).open();
-
-
-
-
 				async function getData() {
 					const response = await requestUrl({
-						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=defnam:%22Maier,%20Michael%22",
+						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=defnam:%22" + savedSettings.searchString + "%22&wt=json",
 						method: 'GET',
 						contentType: 'JSON'
 					});
-					console.log(response);
+					console.log(response.json.response.docs[1].r_leb_str);
+					console.log(response.json.response.docs[1].defnam);
 				}
-				const data = getData();
-				console.log(data);
+				getData();
+
+
+				// //check if folder exists, else create it
+				// async function savelocationcheck() {
+				// 	const folderExists = await FileSystemAdapter.exists(savedSettings.filelocation)
+				
+				// }
+				
+				
+				// {
+				// 	async function writeData() {
+				// 		await vaultaccess.createFolder(
+				// 			savedSettings.filelocation,
+				// 			);
+				// 	}
+				// 	writeData();
+				
 			}
+			
 		});
-
-
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -61,6 +77,7 @@ export default class MyPlugin extends Plugin {
 			name: 'Open sample modal (simple)',
 			callback: () => {
 				new SampleModal(this.app).open();
+				
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -110,7 +127,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, savedSettings, await this.loadData());
 	}
 
 	async saveSettings() {
@@ -174,6 +191,18 @@ class SampleSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					console.log('Secret: ' + value);
 					this.plugin.settings.searchString = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Saving Location')
+			.setDesc('For created biographical files')
+			.addText(text => text
+				.setPlaceholder('dir/subdir/')
+				.setValue(this.plugin.settings.filelocation)
+				.onChange(async (value) => {
+					console.log('file location changed to: ' + value);
+					this.plugin.settings.filelocation = value;
 					await this.plugin.saveSettings();
 				}));
 
