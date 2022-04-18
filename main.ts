@@ -34,6 +34,9 @@ export default class MyPlugin extends Plugin {
 			name: 'Start a Query for historical biographical data',
 			callback: () => {
 
+				// reset search results
+				searchResults.length = 0;
+
 				// Fetch the data from the NDB API.
 				async function getData() {
 					const response = await requestUrl({
@@ -45,6 +48,25 @@ export default class MyPlugin extends Plugin {
 					const data = response.json.response.docs;
 					for (let i = 0; i < data.length; i++) {
 						searchResults.push(data[i]);
+					}
+
+					//////////////////////////////////////////////////////////////////////////////////////////
+					// DATA CLEANUP
+					// check each result for value "n_ko" and "n_le"
+					for (let i = 0; i < searchResults.length; i++) {
+						if (searchResults[i].n_ko !== undefined) {
+							searchResults[i].n_ko = searchResults[i].n_ko.replace(/(?:\r\n|\r|\n)/g, ' ');
+						}	
+						if (searchResults[i].n_le !== undefined) {
+							searchResults[i].n_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
+						}
+						// check each result for value "byears" and "dyears", if empty, set to "N.A."
+						if (searchResults[i].byears === undefined) {
+							searchResults[i].byears = "N.A.";
+						}	
+						if (searchResults[i].dyears === undefined) {
+							searchResults[i].dyears = "N.A.";
+						}	
 					}
 
 					// Create a new Modal with the search results
@@ -110,6 +132,8 @@ interface results {
   defnam: string;
   r_flr: string;
   n_le: string;
+  byears: string;
+  dyears: string;
 }
 
 export class searchResultModal extends SuggestModal<results> {
@@ -124,8 +148,11 @@ export class searchResultModal extends SuggestModal<results> {
   // TODO: Stylize this a bit cleaner
   renderSuggestion(Result: results, el: HTMLElement) {
     el.createEl("div", { text: Result.defnam });
-    el.createEl("small", { text: Result.r_flr });
-	el.createEl("small", { text: Result.n_le });
+    el.createEl("small", { text: Result.r_flr + "\n"});
+	//display NDB entry but only  the first 300 characters
+	if (Result.n_le !== undefined) {
+		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
+	}
   }
 
   // Save the selected suggestion.
@@ -135,10 +162,11 @@ export class searchResultModal extends SuggestModal<results> {
 							// Save the data into a markdown file
 							await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
 							// Create a new markdown file with the name of the person
-									 "# " + Result.defnam + "\n\n" + Result.r_flr + "\n\n" + Result.n_le.replace(/(?:\r\n|\r|\n)/g, ' ')
-		
+							"---\nlicense: CC-BY-NC-ND\n---\n\n" + 
+							
+							"# " + Result.defnam + "\n\n" + "| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + " |\n\n" + 						 
+									 "\n\n---\n\n ## Wichtiges\n\n" + "## Deutsche Biographie-Dump\n\n" + Result.n_le + "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
 										);
-										console.log("Henlo");
 	}
 	saveData();
   }
