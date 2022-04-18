@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter, SuggestModal} from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -29,7 +29,7 @@ export default class MyPlugin extends Plugin {
 		// Main Command for Lookup Historical Data
 		this.addCommand({
 			id: 'ndb-lookup',
-			name: 'Start a Query for historical biological data',
+			name: 'Start a Query for historical biographical data',
 			callback: () => {
 
 				// Fetch the data from the NDB API.
@@ -39,8 +39,34 @@ export default class MyPlugin extends Plugin {
 						method: 'GET',
 						contentType: 'JSON'
 					});
-					console.log(response.json.response.docs[1].r_leb_str);
-					console.log(response.json.response.docs[1].defnam);
+					//loop through the json data and create a new array
+					const data = response.json.response.docs;
+					const dataArray = [];
+					for (let i = 0; i < data.length; i++) {
+						dataArray.push(data[i]);
+					}
+
+					
+
+
+
+
+
+
+
+
+					// randomly select an array
+					const random = Math.floor(Math.random() * dataArray.length);
+					const randomData = dataArray[random];
+					console.log(randomData);
+
+					// Save the data into a markdown file
+					const file = await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
+					// Create a new markdown file with the name of the person
+							 "# " + randomData.defnam + "\n\n" + randomData.r_flr + "\n\n" + randomData.n_le.replace(/(?:\r\n|\r|\n)/g, ' ')
+
+								);
+
 				}
 
 				// Display a modal UI Element to enter the search string and update savedSettings.searchString
