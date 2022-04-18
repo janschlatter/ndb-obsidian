@@ -19,6 +19,8 @@ const savedSettings: MyPluginSettings = {
 
 const vaultaccess = app.vault;
 const fileaccess = FileSystemAdapter;
+const searchResults = new Array();
+
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -41,31 +43,14 @@ export default class MyPlugin extends Plugin {
 					});
 					//loop through the json data and create a new array
 					const data = response.json.response.docs;
-					const dataArray = [];
 					for (let i = 0; i < data.length; i++) {
-						dataArray.push(data[i]);
+						searchResults.push(data[i]);
 					}
 
-					
+					// Create a new Modal with the search results
+					new searchResultModal(app).open();
 
 
-
-
-
-
-
-
-					// randomly select an array
-					const random = Math.floor(Math.random() * dataArray.length);
-					const randomData = dataArray[random];
-					console.log(randomData);
-
-					// Save the data into a markdown file
-					const file = await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
-					// Create a new markdown file with the name of the person
-							 "# " + randomData.defnam + "\n\n" + randomData.r_flr + "\n\n" + randomData.n_le.replace(/(?:\r\n|\r|\n)/g, ' ')
-
-								);
 
 				}
 
@@ -81,10 +66,14 @@ export default class MyPlugin extends Plugin {
 					}
 				  }).open();
 
+				  
 			
 			}
 			
 		});
+
+
+
 
 		// Add the settings tab entry for this plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
@@ -99,6 +88,8 @@ export default class MyPlugin extends Plugin {
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
+	
+
 	onunload() {
 
 	}
@@ -110,6 +101,47 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Handle the Search Results; Create a new Modal with the search results and display them. Then, save the selected one.
+
+interface results {
+  defnam: string;
+  r_flr: string;
+  n_le: string;
+}
+
+export class searchResultModal extends SuggestModal<results> {
+  // Returns all available suggestions.
+  getSuggestions(query: string): results[] {
+    return searchResults.filter((Result) =>
+      Result.defnam.toLowerCase().includes(query.toLowerCase())
+    );
+  }
+
+  // Display each suggestion in a list item.
+  // TODO: Stylize this a bit cleaner
+  renderSuggestion(Result: results, el: HTMLElement) {
+    el.createEl("div", { text: Result.defnam });
+    el.createEl("small", { text: Result.r_flr });
+	el.createEl("small", { text: Result.n_le });
+  }
+
+  // Save the selected suggestion.
+  onChooseSuggestion(Result: results, evt: MouseEvent | KeyboardEvent) {
+    new Notice(`Selected ${Result.defnam}`);
+	async function saveData() {
+							// Save the data into a markdown file
+							await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
+							// Create a new markdown file with the name of the person
+									 "# " + Result.defnam + "\n\n" + Result.r_flr + "\n\n" + Result.n_le.replace(/(?:\r\n|\r|\n)/g, ' ')
+		
+										);
+										console.log("Henlo");
+	}
+	saveData();
+  }
 }
 
 class LookUpModal extends Modal {
