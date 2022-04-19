@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter, SuggestModal} from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter, SuggestModal, WorkspaceLeaf, Workspace} from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -52,7 +52,7 @@ export default class MyPlugin extends Plugin {
 
 					//////////////////////////////////////////////////////////////////////////////////////////
 					// DATA CLEANUP
-					// check each result for value "n_ko" and "n_le"
+					// check each result for value "n_ko" and "n_le", "a_le"
 					for (let i = 0; i < searchResults.length; i++) {
 						if (searchResults[i].n_ko !== undefined) {
 							searchResults[i].n_ko = searchResults[i].n_ko.replace(/(?:\r\n|\r|\n)/g, ' ');
@@ -60,13 +60,23 @@ export default class MyPlugin extends Plugin {
 						if (searchResults[i].n_le !== undefined) {
 							searchResults[i].n_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
 						}
+						if (searchResults[i].a_le !== undefined) {
+							searchResults[i].a_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
+						}
 						// check each result for value "byears" and "dyears", if empty, set to "N.A."
 						if (searchResults[i].byears === undefined) {
 							searchResults[i].byears = "N.A.";
 						}	
 						if (searchResults[i].dyears === undefined) {
 							searchResults[i].dyears = "N.A.";
-						}	
+						}
+						// check each result for value "n_le" and "a_le", if empty, set to "N.A."
+						if (searchResults[i].n_le === undefined) {
+							searchResults[i].n_le = "N.A.";
+						}
+						if (searchResults[i].a_le === undefined) {
+							searchResults[i].a_le = "N.A.";
+						}
 					}
 
 					// Create a new Modal with the search results
@@ -132,6 +142,7 @@ interface results {
   defnam: string;
   r_flr: string;
   n_le: string;
+  a_le: string;
   byears: string;
   dyears: string;
 }
@@ -149,15 +160,15 @@ export class searchResultModal extends SuggestModal<results> {
   renderSuggestion(Result: results, el: HTMLElement) {
     el.createEl("div", { text: Result.defnam });
     el.createEl("small", { text: Result.r_flr + "\n"});
+
 	//display NDB entry but only  the first 300 characters
-	if (Result.n_le !== undefined) {
+	if (Result.n_le !== "N.A.") {
 		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
 	}
   }
 
   // Save the selected suggestion.
   onChooseSuggestion(Result: results, evt: MouseEvent | KeyboardEvent) {
-    new Notice(`Selected ${Result.defnam}`);
 	async function saveData() {
 							// Save the data into a markdown file
 							await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
@@ -165,10 +176,12 @@ export class searchResultModal extends SuggestModal<results> {
 							"---\nlicense: CC-BY-NC-ND\n---\n\n" + 
 							
 							"# " + Result.defnam + "\n\n" + "| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + " |\n\n" + 						 
-									 "\n\n---\n\n ## Wichtiges\n\n" + "## Deutsche Biographie-Dump\n\n" + Result.n_le + "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
+									 "\n\n---\n\n ## Wichtiges\n\n" + "## Deutsche Biographie-Dump\n\n" + Result.n_le + 
+									 "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
 										);
 	}
 	saveData();
+	new Notice('Saved: ' + Result.defnam);
   }
 }
 
@@ -187,7 +200,7 @@ class LookUpModal extends Modal {
     contentEl.createEl("h1", { text: "Start Historical Query" });
 
     new Setting(contentEl)
-	.setName("Preferred Database").setDesc("Which Database should be set as default?").addDropdown((d) => {
+	.setName("Select Database").setDesc("Where do you want to search?").addDropdown((d) => {
 		d.addOption("ndb", "Neue Deutsche Biographie");
 		d.addOption("bitlib", "British Library");
 		d.addOption("met", "Metropolitan Museum of Art");
