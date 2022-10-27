@@ -20,6 +20,7 @@ const savedSettings: MyPluginSettings = {
 const vaultaccess = app.vault;
 const fileaccess = FileSystemAdapter;
 const searchResults = new Array();
+var noResults = false;
 
 
 export default class MyPlugin extends Plugin {
@@ -39,16 +40,28 @@ export default class MyPlugin extends Plugin {
 
 				// Fetch the data from the NDB API.
 				async function getData() {
+					var noResults = false;
 					const response = await requestUrl({
 						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=defnam:%22" + savedSettings.searchString + "%22&wt=json",
 						method: 'GET',
 						contentType: 'JSON'
 					});
 					//loop through the json data and create a new array
+					console.log(response);
 					const data = response.json.response.docs;
 					for (let i = 0; i < data.length; i++) {
 						searchResults.push(data[i]);
 					}
+
+					// check if data is undefined and if so, stop the function, close the modal
+					if (searchResults.length == 0) {
+						noResults = true;
+						// display a notice that no results were found
+						new Notice("No results found for " + savedSettings.searchString);
+						// stop the function
+						return;
+					}
+
 
 					//////////////////////////////////////////////////////////////////////////////////////////
 					// DATA CLEANUP
@@ -161,7 +174,7 @@ export class searchResultModal extends SuggestModal<results> {
     el.createEl("div", { text: Result.defnam });
     el.createEl("small", { text: Result.r_flr + "\n"});
 
-	//display NDB entry but only  the first 300 characters
+	//display NDB entry but only the first 300 characters
 	if (Result.n_le !== "N.A.") {
 		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
 	}
@@ -226,6 +239,9 @@ class LookUpModal extends Modal {
             this.close();
             this.onSubmit(this.result);
           }));
+
+	//focus on the text field
+	contentEl.querySelector("input").focus();
   }
 
   onClose() {
