@@ -2,6 +2,9 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 // Remember to rename these classes and interfaces!
 
+// import Papa from 'papaparse';
+import * as Papa  from 'papaparse.min.js';
+
 interface MyPluginSettings {
 	searchString: string;
 	settingsBool: boolean;
@@ -21,6 +24,7 @@ const vaultaccess = app.vault;
 const fileaccess = FileSystemAdapter;
 const searchResults = new Array();
 var noResults = false;
+var id = "";
 
 
 export default class MyPlugin extends Plugin {
@@ -42,7 +46,7 @@ export default class MyPlugin extends Plugin {
 				async function getData() {
 					var noResults = false;
 					const response = await requestUrl({
-						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=defnam:%22" + savedSettings.searchString + "%22&wt=json",
+						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=r_nam:%22" + savedSettings.searchString + "%22&wt=json" + "&rows=50",
 						method: 'GET',
 						contentType: 'JSON'
 					});
@@ -158,6 +162,7 @@ interface results {
   a_le: string;
   byears: string;
   dyears: string;
+  id: string;
 }
 
 export class searchResultModal extends SuggestModal<results> {
@@ -179,6 +184,26 @@ export class searchResultModal extends SuggestModal<results> {
 		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
 	}
   }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Check if Result.id starts with "sfz", if yes, then substring the id and save it as a new variable
+// Then, search for the id in the csv file "relations.csv" and check if the id is in the file
+// If yes, then console.log the id and the corresponding value of the id
+// If no, then console.log the id and "no relation found"
+
+// checkRelations(Result: results, evt: MouseEvent | KeyboardEvent) {
+// 	if (Result.id.startsWith("sfz")) {
+// 		let id = Result.id.substring(3);
+// 	}
+
+// 	//papaparse "ndbrel.csv"
+// 	Papa.parse("ndbrel.csv", {
+// 		download: true,
+// 		complete: function(results) {
+// 			console.log(results);
+// 		}
+// 	});
+// }
 
   // Save the selected suggestion.
   onChooseSuggestion(Result: results, evt: MouseEvent | KeyboardEvent) {
