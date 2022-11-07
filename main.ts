@@ -28,7 +28,7 @@ const searchResults = new Array();
 var noResults = false;
 var id = "";
 var isSearching = '*';
-const ndbURL = 'http://data.deutsche-biographie.de/beta/solr-open/?q=r_nam:'
+const ndbURL = 'http://data.deutsche-biographie.de/beta/solr-open/?q=(r_nam:"'
 
 
 export default class MyPlugin extends Plugin {
@@ -48,7 +48,7 @@ export default class MyPlugin extends Plugin {
 
 				// Fetch the data from the NDB API.
 				// Construct the URL from encodedURL, searchString, isSearching, concatenate "&wt=json&rows=50", and encode it again.
-				const requestURL = encodeURI(ndbURL + isSearching + savedSettings.searchString + isSearching + " AND (r_ndb:1 OR r_adb:1)&wt=json&rows=100");
+				const requestURL = encodeURI(ndbURL + isSearching + savedSettings.searchString + isSearching + '") AND (r_ndb:1 OR r_adb:1)&wt=json&rows=100');
 
 				async function getData() {
 					var noResults = false;
@@ -66,6 +66,7 @@ export default class MyPlugin extends Plugin {
 						searchResults.push(data[i]);
 					}
 
+
 					// check if data is undefined and if so, stop the function, close the modal
 					if (searchResults.length == 0) {
 						noResults = true;
@@ -73,6 +74,21 @@ export default class MyPlugin extends Plugin {
 						new Notice("No results found for " + savedSettings.searchString);
 						// stop the function
 						return;
+					}
+
+										//check each entry of defnam for a match with the search string, push to them to a new array
+					const filteredResults = searchResults.filter(function (el) {
+						return el.defnam.includes(savedSettings.searchString);
+					});
+					// console log the filtered results
+					console.log(filteredResults);
+					// if there are no results, console log "no results"
+					if (filteredResults.length == 0) {
+						console.log("no results");
+					}
+					// push the remaining results to the filteredResults array
+					for (let i = 0; i < filteredResults.length; i++) {
+						searchResults.push(filteredResults[i]);
 					}
 
 					//sort the JSON data by value of byears ascending
@@ -187,6 +203,7 @@ interface results {
   byears: string;
   dyears: string;
   id: string;
+  r_ber: string;
 }
 
 export class searchResultModal extends SuggestModal<results> {
@@ -203,9 +220,15 @@ export class searchResultModal extends SuggestModal<results> {
     el.createEl("div", { text: Result.defnam });
     el.createEl("small", { text: Result.r_flr + "\n"});
 
-	//display n_le first 300 characters, if n_le is less than 20 characters, display a_le first 300 characters
-	if (Result.n_le.length < 20) {
-		el.createEl("small", { text: Result.a_le.substring(0, 300) + "..." });
+	//display n_le first 300 characters, if n_le is less than 20 characters or undefined, check if a_le is not undefined, then check if a_le.length is more than 20 chars, if yes, display first 300 characters
+	if (Result.n_le.length < 20 || Result.n_le === undefined) {
+		if (Result.a_le !== undefined) {
+			if (Result.a_le.length > 20) {
+				el.createEl("small", { text: Result.a_le.substring(0, 300) + "..." });
+			} else {
+				el.createEl("small", { text: Result.a_le });
+			}
+		}
 	} else {
 		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
 	}
@@ -239,8 +262,8 @@ export class searchResultModal extends SuggestModal<results> {
 							// Create a new markdown file with the name of the person
 							"---\nlicense: CC-BY-NC-ND\n---\n\n" + 
 							
-							"| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + " |\n\n" + 						 
-									 "\n\n---\n\n ## Wichtiges\n\n" + "## Deutsche Biographie-Dump\n\n" + Result.n_le + 
+							"| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + Result.r_ber + "|\n\n" + 						 
+									 "\n\n---\n\n ## Wichtiges\n\n" + "## Neue Deutsche Biographie\n\n" + Result.n_le + '## Allgemeine Deutsche Biographie\n\n' + Result.a_le + 
 									 "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
 										);
 	}
