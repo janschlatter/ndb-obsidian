@@ -1,10 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter, SuggestModal, WorkspaceLeaf, Workspace} from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-// import Papa from 'papaparse';
-import * as Papa  from 'papaparse.min.js';
-
 interface MyPluginSettings {
 	searchString: string;
 	settingsBool: boolean;
@@ -46,12 +41,24 @@ export default class MyPlugin extends Plugin {
 				// reset search results
 				searchResults.length = 0;
 
+				// Display a modal UI Element to enter the search string and update savedSettings.searchString
+				new LookUpModal(this.app, (result) => {
+					//check if result is not null, if not null, update saved.Settings.searchstring
+					if (result != null) {
+						savedSettings.searchString = result;
+						this.settings.searchString = result;
+						getData();
+					} else {
+						new Notice('Please enter a name.');
+					}
+					}).open();
+
 				// Fetch the data from the NDB API.
 				// Construct the URL from encodedURL, searchString, isSearching, concatenate "&wt=json&rows=50", and encode it again.
-				const requestURL = encodeURI(ndbURL + isSearching + savedSettings.searchString + isSearching + '") AND (r_ndb:1 OR r_adb:1)&wt=json&rows=100');
-
+				
 				async function getData() {
 					var noResults = false;
+					const requestURL = encodeURI(ndbURL + isSearching + savedSettings.searchString + isSearching + '") AND (r_ndb:1 OR r_adb:1)&wt=json&rows=100');
 					const response = await requestUrl({
 						url: requestURL,
 						method: 'GET',
@@ -66,7 +73,6 @@ export default class MyPlugin extends Plugin {
 						searchResults.push(data[i]);
 					}
 
-
 					// check if data is undefined and if so, stop the function, close the modal
 					if (searchResults.length == 0) {
 						noResults = true;
@@ -75,11 +81,20 @@ export default class MyPlugin extends Plugin {
 						// stop the function
 						return;
 					}
-
-										//check each entry of defnam for a match with the search string, push to them to a new array
-					const filteredResults = searchResults.filter(function (el) {
-						return el.defnam.includes(savedSettings.searchString);
-					});
+					//////// PRESORTING THE DATA ////////
+					//check each entry of defnam for a match with the search string, push them to a new array and save the index
+					var filteredResults = new Array();
+					var filteredResultsIndex = new Array();
+					for (let i = 0; i < searchResults.length; i++) {
+						if (searchResults[i].defnam.includes(savedSettings.searchString)) {
+							filteredResults.push(searchResults[i]);
+							filteredResultsIndex.push(i);
+						}
+					}
+					//remove the entries from the searchResults array
+					for (let i = 0; i < filteredResultsIndex.length; i++) {
+						searchResults.splice(filteredResultsIndex[i], 1);
+					}
 					// console log the filtered results
 					console.log(filteredResults);
 					// if there are no results, console log "no results"
@@ -104,22 +119,10 @@ export default class MyPlugin extends Plugin {
 						}
 					}
 
-
-
-					//////////////////////////////////////////////////////////////////////////////////////////
+					///////////////
 					// DATA CLEANUP
 					// check each result for value "n_ko" and "n_le", "a_le"
 					for (let i = 0; i < searchResults.length; i++) {
-							// this has created errors, for now just for reference
-						// if (searchResults[i].n_ko !== undefined) {
-						// 	searchResults[i].n_ko = searchResults[i].n_ko.replace(/(?:\r\n|\r|\n)/g, ' ');
-						// }	
-						// if (searchResults[i].n_le !== undefined) {
-						// 	searchResults[i].n_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
-						// }
-						// if (searchResults[i].a_le !=== undefined) {
-						// 	searchResults[i].a_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
-						// }
 						// check each result for value "byears" and "dyears", if empty, set to "N.A."
 						if (searchResults[i].byears === undefined) {
 							searchResults[i].byears = "N.A.";
@@ -135,34 +138,11 @@ export default class MyPlugin extends Plugin {
 							searchResults[i].a_le = "N.A.";
 						}
 					}
-
 					// Create a new Modal with the search results
 					new searchResultModal(app).open();
-
-
-
 				}
-
-				// Display a modal UI Element to enter the search string and update savedSettings.searchString
-				new LookUpModal(this.app, (result) => {
-					//check if result is not null, if not null, update saved.Settings.searchstring
-					if (result != null) {
-						savedSettings.searchString = result;
-						this.saveSettings();
-						getData();
-					} else {
-						new Notice('Please enter a name.');
-					}
-				  }).open();
-
-				  
-			
 			}
-			
 		});
-
-
-
 
 		// Add the settings tab entry for this plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
@@ -234,26 +214,6 @@ export class searchResultModal extends SuggestModal<results> {
 	}
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Check if Result.id starts with "sfz", if yes, then substring the id and save it as a new variable
-// Then, search for the id in the csv file "relations.csv" and check if the id is in the file
-// If yes, then console.log the id and the corresponding value of the id
-// If no, then console.log the id and "no relation found"
-
-// checkRelations(Result: results, evt: MouseEvent | KeyboardEvent) {
-// 	if (Result.id.startsWith("sfz")) {
-// 		let id = Result.id.substring(3);
-// 	}
-
-// 	//papaparse "ndbrel.csv"
-// 	Papa.parse("ndbrel.csv", {
-// 		download: true,
-// 		complete: function(results) {
-// 			console.log(results);
-// 		}
-// 	});
-// }
-
   // Save the selected suggestion.
   onChooseSuggestion(Result: results, evt: MouseEvent | KeyboardEvent) {
 	async function saveData() {
@@ -271,7 +231,8 @@ export class searchResultModal extends SuggestModal<results> {
 	new Notice('Saved: ' + Result.defnam);
   }
 }
-
+////////////////////////////////
+///// Initial Search Modal /////
 class LookUpModal extends Modal {
   result: string;
   onSubmit: (result: string) => void;
@@ -298,10 +259,11 @@ class LookUpModal extends Modal {
 
 
     new Setting(contentEl)
-      .setName("Lastname, Firstname")
+      .setName("Ideally stick to Last Name, First Name - but anything goes")
       .addText((text) =>
         text.onChange((value) => {
           this.result = value;
+		  savedSettings.searchString = value;
 		  console.log("Historical Query Search String changed to " + this.result);
         }));
 
