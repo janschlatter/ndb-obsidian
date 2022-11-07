@@ -10,13 +10,15 @@ interface MyPluginSettings {
 	settingsBool: boolean;
 	filelocation: string;
 	preferredDB: string;
+	deleteEntries: boolean;
 }
 
-const savedSettings: MyPluginSettings = {
+var savedSettings: MyPluginSettings = {
 	searchString: 'Maier, Michael',
 	settingsBool: true,
 	filelocation: '/Personen/',
-	preferredDB: 'ndb'
+	preferredDB: 'ndb',
+	deleteEntries: false
 }
 
 
@@ -25,6 +27,8 @@ const fileaccess = FileSystemAdapter;
 const searchResults = new Array();
 var noResults = false;
 var id = "";
+var isSearching = '*';
+const ndbURL = 'http://data.deutsche-biographie.de/beta/solr-open/?q=r_nam:'
 
 
 export default class MyPlugin extends Plugin {
@@ -43,13 +47,18 @@ export default class MyPlugin extends Plugin {
 				searchResults.length = 0;
 
 				// Fetch the data from the NDB API.
+				// Construct the URL from encodedURL, searchString, isSearching, concatenate "&wt=json&rows=50", and encode it again.
+				const requestURL = encodeURI(ndbURL + isSearching + savedSettings.searchString + isSearching + " AND (r_ndb:1 OR r_adb:1)&wt=json&rows=100");
+
 				async function getData() {
 					var noResults = false;
 					const response = await requestUrl({
-						url: "http://data.deutsche-biographie.de/beta/solr-open/?q=r_nam:%22" + savedSettings.searchString + "%22&wt=json" + "&rows=50",
+						url: requestURL,
 						method: 'GET',
 						contentType: 'JSON'
 					});
+					// console log the url
+					console.log(requestURL);
 					//loop through the json data and create a new array
 					console.log(response);
 					const data = response.json.response.docs;
@@ -66,20 +75,35 @@ export default class MyPlugin extends Plugin {
 						return;
 					}
 
+					//sort the JSON data by value of byears ascending
+					searchResults.sort(function (a, b) {
+						return a.byears - b.byears;
+					});
+
+					// remove entries where neither r_ndb nor r_adb are true from JSON data
+					for (let i = 0; i < searchResults.length; i++) {
+						if (searchResults[i].r_ndb == false) {
+							searchResults.splice(i, 1);
+							console.log("Cleaned up Entry");
+						}
+					}
+
+
 
 					//////////////////////////////////////////////////////////////////////////////////////////
 					// DATA CLEANUP
 					// check each result for value "n_ko" and "n_le", "a_le"
 					for (let i = 0; i < searchResults.length; i++) {
-						if (searchResults[i].n_ko !== undefined) {
-							searchResults[i].n_ko = searchResults[i].n_ko.replace(/(?:\r\n|\r|\n)/g, ' ');
-						}	
-						if (searchResults[i].n_le !== undefined) {
-							searchResults[i].n_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
-						}
-						if (searchResults[i].a_le !== undefined) {
-							searchResults[i].a_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
-						}
+							// this has created errors, for now just for reference
+						// if (searchResults[i].n_ko !== undefined) {
+						// 	searchResults[i].n_ko = searchResults[i].n_ko.replace(/(?:\r\n|\r|\n)/g, ' ');
+						// }	
+						// if (searchResults[i].n_le !== undefined) {
+						// 	searchResults[i].n_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
+						// }
+						// if (searchResults[i].a_le !=== undefined) {
+						// 	searchResults[i].a_le = searchResults[i].n_le.replace(/(?:\r\n|\r|\n)/g, ' ');
+						// }
 						// check each result for value "byears" and "dyears", if empty, set to "N.A."
 						if (searchResults[i].byears === undefined) {
 							searchResults[i].byears = "N.A.";
@@ -179,8 +203,10 @@ export class searchResultModal extends SuggestModal<results> {
     el.createEl("div", { text: Result.defnam });
     el.createEl("small", { text: Result.r_flr + "\n"});
 
-	//display NDB entry but only the first 300 characters
-	if (Result.n_le !== "N.A.") {
+	//display n_le first 300 characters, if n_le is less than 20 characters, display a_le first 300 characters
+	if (Result.n_le.length < 20) {
+		el.createEl("small", { text: Result.a_le.substring(0, 300) + "..." });
+	} else {
 		el.createEl("small", { text: Result.n_le.substring(0, 300) + "..." });
 	}
   }
@@ -209,11 +235,11 @@ export class searchResultModal extends SuggestModal<results> {
   onChooseSuggestion(Result: results, evt: MouseEvent | KeyboardEvent) {
 	async function saveData() {
 							// Save the data into a markdown file
-							await vaultaccess.create(savedSettings.filelocation + savedSettings.searchString + ".md",
+							await vaultaccess.create(savedSettings.filelocation + Result.defnam + ".md",
 							// Create a new markdown file with the name of the person
 							"---\nlicense: CC-BY-NC-ND\n---\n\n" + 
 							
-							"# " + Result.defnam + "\n\n" + "| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + " |\n\n" + 						 
+							"| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + " |\n\n" + 						 
 									 "\n\n---\n\n ## Wichtiges\n\n" + "## Deutsche Biographie-Dump\n\n" + Result.n_le + 
 									 "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
 										);
@@ -252,7 +278,8 @@ class LookUpModal extends Modal {
       .setName("Lastname, Firstname")
       .addText((text) =>
         text.onChange((value) => {
-          this.result = value
+          this.result = value;
+		  console.log("Historical Query Search String changed to " + this.result);
         }));
 
     new Setting(contentEl)
@@ -265,8 +292,7 @@ class LookUpModal extends Modal {
             this.onSubmit(this.result);
           }));
 
-	//focus on the text field
-	contentEl.querySelector("input").focus();
+	
   }
 
   onClose() {
@@ -333,6 +359,19 @@ class SampleSettingTab extends PluginSettingTab {
 				this.plugin.settings.settingsBool = value;
 				await this.plugin.saveSettings();
 			}));
+
+		// new setting for deleting entries without biography
+		new Setting(containerEl)
+		.setName('Delete entries without biography')
+		.setDesc('For Deutsche Biographie only')
+		.addToggle((text) => text
+			.setValue(this.plugin.settings.deleteEntries)
+			.onChange(async (value) => {
+				console.log("Delete entries without biography switched to: " + value);
+				this.plugin.settings.deleteEntries = value;
+				await this.plugin.saveSettings();
+			}));
+
 
 			const hltrDonationDiv = containerEl.createEl("div", {
 				cls: "hltrDonationSection",
