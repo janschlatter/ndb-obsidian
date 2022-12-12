@@ -396,7 +396,7 @@ class SampleSettingTab extends PluginSettingTab {
 				cls: "hltrDonationSection",
 			});
 			const addendum = createEl("p");
-			addendum.appendText("This plugin is made by Jan Schlatter and is free to use. The data provided by the databases are subject to their respective licenses. The author is not responsible for the content of the databases or possible damage caused by the use of this plugin.");
+			addendum.appendText("This plugin is created by Jan Schlatter and is free to use. The data provided by the databases are subject to their respective licenses. The author is not responsible for the content of the databases or possible damage caused by the use of this plugin.");
 			hltrDonationDiv.appendChild(addendum);	
 }
 }

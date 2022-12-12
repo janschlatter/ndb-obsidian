@@ -1,7 +1,7 @@
 {
 	"id": "hist-obsidian",
 	"name": "Historical Query",
-	"version": "1.0.1",
+	"version": "1.2",
 	"minAppVersion": "0.12.0",
 	"description": "Search and insert biographical data from deutsche-biographie.de",
 	"author": "Jan Schlatter",
