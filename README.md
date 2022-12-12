@@ -24,8 +24,6 @@ Install the plugin by copying it into your plugins folder in your vault and acti
 
 Using the Deutsche Biographie-API is subject to their licenses:
 
- - articles of "Allgemeine Deutsche Biographie (ADB)", given in a div@type="adb" container: CC-BY-NC-SA attribution to "Deutsche Biographie",
-
-- articles of "Neue Deutsche Biographie (NDB)" given in a div@type="ndb" container: CC-BY-NC-ND attribution to "Deutsche Biographie",
-
+- articles of "Allgemeine Deutsche Biographie (ADB)": CC-BY-NC-SA attribution to "Deutsche Biographie",
+- articles of "Neue Deutsche Biographie (NDB)": CC-BY-NC-ND attribution to "Deutsche Biographie",
 - allmetadata is CC0.
