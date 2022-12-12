@@ -6,6 +6,9 @@ interface MyPluginSettings {
 	filelocation: string;
 	preferredDB: string;
 	deleteEntries: boolean;
+	searchIn: string;
+	sortOrder: string;
+	limit: number;
 }
 
 var savedSettings: MyPluginSettings = {
@@ -13,7 +16,10 @@ var savedSettings: MyPluginSettings = {
 	settingsBool: true,
 	filelocation: '/Personen/',
 	preferredDB: 'ndb',
-	deleteEntries: false
+	deleteEntries: false,
+	searchIn: '',
+	sortOrder: 'byears_asc',
+	limit: 100
 }
 
 
@@ -259,13 +265,64 @@ class LookUpModal extends Modal {
 
 
     new Setting(contentEl)
-      .setName("Ideally stick to Last Name, First Name - but anything goes")
+      .setName("Search Term")
       .addText((text) =>
         text.onChange((value) => {
           this.result = value;
 		  savedSettings.searchString = value;
 		  console.log("Historical Query Search String changed to " + this.result);
         }));
+
+	// add a toggle to show advanced options
+	new Setting(contentEl)
+	.setName("Advanced Options")
+	.addToggle((toggle) => {
+		toggle.onChange((value) => {
+			if (value) {
+				// show advanced options
+				new Setting(contentEl)
+				.setName("Search in")
+				.addDropdown((d) => {
+					d.addOption("all", "All Fields");
+					d.addOption("defnam", "Name");
+					d.addOption("r_flr", "Place of Residence");
+					d.addOption("r_ber", "Profession");	
+					d.setValue(savedSettings.searchIn);
+					d.onChange((v) =>
+						savedSettings.searchIn = v);})
+				new Setting(contentEl)
+				.setName("Sort order")
+				.setDesc("By date of birth")
+				.addDropdown((d) => {
+					d.addOption("asc", "Ascending");
+					d.addOption("desc", "Descending");
+					d.setValue(savedSettings.sortOrder);
+					d.onChange((v) =>
+						savedSettings.sortOrder = v);})
+				new Setting(contentEl)
+				.setName("Limit results to")
+				.setDesc("Default 100, reduce if proccessing is slow or on mobile")
+				.addText((text) =>
+					text.onChange((value) => {
+						//convert value to number
+						savedSettings.limit = parseInt(value);
+						console.log("Historical Query Limit changed to " + value);
+					}));
+			} else {
+				// hide advanced options
+				contentEl.removeChild(contentEl.lastChild);
+				contentEl.removeChild(contentEl.lastChild);
+				contentEl.removeChild(contentEl.lastChild);
+				contentEl.removeChild(contentEl.lastChild);
+			}
+		});
+	});
+
+
+
+
+  
+
 
     new Setting(contentEl)
       .addButton((btn) =>
@@ -311,18 +368,6 @@ class SampleSettingTab extends PluginSettingTab {
 			  savedSettings.preferredDB = v);})
 
 		new Setting(containerEl)
-			.setName('Name for Testing Purposes')
-			.setDesc('Needs to be Surname, Firstname')
-			.addText(text => text
-				.setPlaceholder('Enter a name')
-				.setValue(this.plugin.settings.searchString)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.searchString = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
 			.setName('Saving Location')
 			.setDesc('For created biographical files')
 			.addText(text => text
@@ -334,20 +379,9 @@ class SampleSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-		.setName('Test Bool')
-		.setDesc('On or off?')
-		.addToggle((text) => text
-			.setValue(this.plugin.settings.settingsBool)
-			.onChange(async (value) => {
-				console.log("TestBool switched to: " + value);
-				this.plugin.settings.settingsBool = value;
-				await this.plugin.saveSettings();
-			}));
-
 		// new setting for deleting entries without biography
 		new Setting(containerEl)
-		.setName('Delete entries without biography')
+		.setName('Hide entries without written biography')
 		.setDesc('For Deutsche Biographie only')
 		.addToggle((text) => text
 			.setValue(this.plugin.settings.deleteEntries)
@@ -362,7 +396,7 @@ class SampleSettingTab extends PluginSettingTab {
 				cls: "hltrDonationSection",
 			});
 			const addendum = createEl("p");
-			addendum.appendText("This plugin is free to use. The data provided by the databases are subject to their respective licenses.");
+			addendum.appendText("This plugin is made by Jan Schlatter and is free to use. The data provided by the databases are subject to their respective licenses. The author is not responsible for the content of the databases or possible damage caused by the use of this plugin.");
 			hltrDonationDiv.appendChild(addendum);	
 }
 }
