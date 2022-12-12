@@ -1,3 +1,5 @@
+![CleanShot 2022-12-12 at 15 24 44](https://user-images.githubusercontent.com/63644885/207070529-98bd4563-2e1d-4bfd-a7d4-f8491d7dcc63.gif)
+
 ## Deutsche Biographie Lookup for Obisidan
 
 Search and insert biographical data from deutsche-biographie.de.
