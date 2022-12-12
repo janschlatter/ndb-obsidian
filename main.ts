@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, request, Vault, FileSystemAdapter, DataAdapter, SuggestModal, WorkspaceLeaf, Workspace} from 'obsidian';
 
-interface MyPluginSettings {
+interface ndbSettings {
 	searchString: string;
 	settingsBool: boolean;
 	filelocation: string;
@@ -11,7 +11,7 @@ interface MyPluginSettings {
 	limit: number;
 }
 
-var savedSettings: MyPluginSettings = {
+var savedSettings: ndbSettings = {
 	searchString: 'Maier, Michael',
 	settingsBool: true,
 	filelocation: '/Personen/',
@@ -32,8 +32,8 @@ var isSearching = '*';
 const ndbURL = 'http://data.deutsche-biographie.de/beta/solr-open/?q=(r_nam:"'
 
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ndbPlugin extends Plugin {
+	settings: ndbSettings;
 
 	async onload() {
 		await this.loadSettings();
@@ -344,9 +344,9 @@ class LookUpModal extends Modal {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: ndbPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: ndbPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
