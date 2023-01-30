@@ -238,7 +238,7 @@ export class searchResultModal extends SuggestModal<results> {
 							"---\nlicense: CC-BY-NC-ND\n---\n\n" + 
 							
 							"| Geboren | Gestorben | Wirkungsort | Beruf |\n" + "|:-------|:---------|:------------|:-----|\n" + "| " + Result.byears +" | " + Result.dyears + " | " + " | " + Result.r_ber + "|\n\n" + 						 
-									 "\n\n---\n\n ## Wichtiges\n\n" + "## Neue Deutsche Biographie\n\n" + Result.n_le + '## Allgemeine Deutsche Biographie\n\n' + Result.a_le + 
+									 "\n\n---\n\n## Wichtiges\n\n" + "## Neue Deutsche Biographie\n\n" + Result.n_le + '## Allgemeine Deutsche Biographie\n\n' + Result.a_le + 
 									 "\n\n## Verbindungen\n\n```query\n\"" + Result.defnam + "\" -file:\"" + Result.defnam + "\"" + "\n```"
 										);
 	}
