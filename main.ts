@@ -144,6 +144,15 @@ export default class ndbPlugin extends Plugin {
 							searchResults[i].a_le = "N.A.";
 						}
 					}
+
+					// use regEx to remove all double, triple and quatruple spaces from .a_le and .n_le
+					for (let i = 0; i < searchResults.length; i++) {
+						searchResults[i].a_le = searchResults[i].a_le.replace(/\s\s+/g, ' ');
+						searchResults[i].a_le = searchResults[i].a_le.replace(/(\r\n|\n|\r)/gm, "");
+						searchResults[i].n_le = searchResults[i].n_le.replace(/\s\s+/g, ' ');
+						searchResults[i].n_le = searchResults[i].n_le.replace(/(\r\n|\n|\r)/gm, "");
+					}
+
 					// Create a new Modal with the search results
 					new searchResultModal(app).open();
 				}
